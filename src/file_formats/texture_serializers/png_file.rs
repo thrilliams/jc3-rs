@@ -3,7 +3,9 @@ use std::io::{Error, ErrorKind, Seek, Write};
 use png::{BitDepth, ColorType, Encoder};
 use texpresso::Format;
 
-use crate::file_formats::texture_file::{TextureFile, TextureSerializerExt};
+use crate::file_formats::texture_file::TextureFile;
+
+use super::texture_serializer::TextureSerializerExt;
 
 pub struct PNGFile {}
 
