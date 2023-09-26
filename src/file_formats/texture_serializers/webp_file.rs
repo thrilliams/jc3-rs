@@ -1,13 +1,12 @@
 use std::io::{Error, ErrorKind, Seek, Write};
-
-use png::{BitDepth, ColorType, Encoder};
 use texpresso::Format;
+use webp::{Encoder, PixelLayout};
 
 use crate::file_formats::texture_file::{TextureFile, TextureSerializerExt};
 
-pub struct PNGFile {}
+pub struct WEBPFile {}
 
-impl TextureSerializerExt for PNGFile {
+impl TextureSerializerExt for WEBPFile {
     fn serialize<R: Seek + Write>(output: &mut R, texture: &TextureFile) -> std::io::Result<()> {
         let format = match texture.format {
             // DXGI_FORMAT_BC1_UNORM
@@ -37,12 +36,15 @@ impl TextureSerializerExt for PNGFile {
             &mut decompressed,
         );
 
-        let mut encoder = Encoder::new(output, texture.width.into(), texture.height.into());
-        encoder.set_color(ColorType::Rgba);
-        encoder.set_depth(BitDepth::Eight);
-        let mut writer = encoder.write_header()?;
+        let encoded = Encoder::new(
+            &decompressed,
+            PixelLayout::Rgba,
+            texture.width.into(),
+            texture.height.into(),
+        )
+        .encode_lossless();
 
-        writer.write_image_data(&decompressed)?;
+        output.write(&encoded)?;
 
         Ok(())
     }
