@@ -25,9 +25,7 @@ const SIMPLE_8_LOOKUP: [(u64, &str); 3] = [
     (0x4453425200000005, "rbs"),
 ];
 
-pub struct PackedArchive {
-    pub entries: Vec<PackedArchiveEntry>,
-}
+pub struct PackedArchive {}
 
 pub struct PackedArchiveEntry {
     pub name: String,
@@ -40,7 +38,7 @@ impl PackedArchive {
         input: &mut R,
         archive_table: &ArchiveTable,
         file_list_entries: &HashMap<u32, FileListEntry>,
-    ) -> std::io::Result<PackedArchive> {
+    ) -> std::io::Result<Vec<PackedArchiveEntry>> {
         let mut entries = Vec::new();
 
         for entry in &archive_table.entries {
@@ -72,13 +70,13 @@ impl PackedArchive {
             })
         }
 
-        Ok(PackedArchive { entries })
+        Ok(entries)
     }
     pub fn deserialize_from_path<P: AsRef<Path>>(
         path: &P,
         archive_table: &ArchiveTable,
         file_list_entries: &HashMap<u32, FileListEntry>,
-    ) -> std::io::Result<PackedArchive> {
+    ) -> std::io::Result<Vec<PackedArchiveEntry>> {
         let file = File::open(path)?;
         let mut buf_reader = BufReader::new(file);
         PackedArchive::deserialize(&mut buf_reader, archive_table, file_list_entries)

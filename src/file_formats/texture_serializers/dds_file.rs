@@ -1,15 +1,11 @@
 use std::io::{Error, ErrorKind, Read, Seek, Write};
 
-use crate::helpers::{
-    byte::*,
-    serializable::{SerializableExt, SerializablePartExt},
+use crate::{
+    file_formats::texture_file::{TextureFile, TextureSerializerExt},
+    helpers::{byte::*, serializable::SerializablePartExt},
 };
 
-use super::texture_file::TextureFile;
-
-pub struct DDSFile {
-    pub texture: TextureFile,
-}
+pub struct DDSFile {}
 
 impl DDSFile {
     fn get_pixel_format(texture: &TextureFile) -> std::io::Result<PixelFormat> {
@@ -47,25 +43,20 @@ impl DDSFile {
     }
 }
 
-impl SerializableExt<DDSFile> for DDSFile {
-    fn deserialize<R: Seek + Read>(_input: &mut R) -> std::io::Result<DDSFile> {
-        // https://github.com/gibbed/Gibbed.Squish/blob/8789158f1565d91787bb3164bbd0546eac3a01f3/DDSFile.cs#L115
-        unimplemented!()
-    }
-
-    fn serialize<R: Seek + Write>(&self, output: &mut R) -> std::io::Result<()> {
+impl TextureSerializerExt for DDSFile {
+    fn serialize<R: Seek + Write>(output: &mut R, texture: &TextureFile) -> std::io::Result<()> {
         let le = true;
 
         let header = DDSHeader {
             size: DDSHeader::DEFAULT_SIZE,
             flags: HeaderFlags::Texture as u32 | HeaderFlags::Mipmap as u32,
-            height: self.texture.height.into(),
-            width: self.texture.width.into(),
+            height: texture.height.into(),
+            width: texture.width.into(),
             pitch_or_linear_size: 0,
             depth: 0,
-            mip_map_count: self.texture.mip_count.into(),
+            mip_map_count: texture.mip_count.into(),
             reserved_1: [0u8; 11 * 4],
-            pixel_format: DDSFile::get_pixel_format(&self.texture)?,
+            pixel_format: DDSFile::get_pixel_format(texture)?,
             surface_flags: 8,
             cubemap_flags: 0,
             reserved_2: [0u8; 3 * 4],
@@ -75,14 +66,14 @@ impl SerializableExt<DDSFile> for DDSFile {
         header.write(output, le)?;
 
         if header.pixel_format.four_cc == 0x3031584 {
-            output.write_u32(self.texture.format, le)?;
+            output.write_u32(texture.format, le)?;
             output.write_u32(2, le)?;
             output.write_u32(0, le)?;
             output.write_u32(1, le)?;
             output.write_u32(0, le)?;
         }
 
-        output.write(&self.texture.elements[0].contents)?;
+        output.write(&texture.elements[0].contents)?;
 
         Ok(())
     }

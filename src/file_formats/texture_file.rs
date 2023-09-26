@@ -1,4 +1,6 @@
-use std::io::{Error, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::fs::File;
+use std::io::{BufWriter, Cursor, Error, ErrorKind, Read, Seek, SeekFrom, Write};
+use std::path::Path;
 
 use crate::helpers::byte::*;
 use crate::helpers::error::to_io_error;
@@ -6,6 +8,26 @@ use crate::helpers::serializable::{SerializableExt, SerializablePartExt};
 
 const SIGNATURE: &[u8; 4] = b"AVTX"; // 0x58545641
 const ELEMENT_COUNT: usize = 8;
+
+pub trait TextureSerializerExt {
+    fn serialize<R: Seek + Write>(output: &mut R, texture: &TextureFile) -> std::io::Result<()>;
+
+    fn serialize_to_path<P: AsRef<Path>>(path: &P, texture: &TextureFile) -> std::io::Result<()> {
+        let file = File::options()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(path)?;
+        let mut buf_writer = BufWriter::new(file);
+        Self::serialize(&mut buf_writer, texture)
+    }
+    fn serialize_to_bytes(texture: &TextureFile) -> std::io::Result<Vec<u8>> {
+        let mut bytes: Vec<u8> = Vec::new();
+        let mut writer = Cursor::new(&mut bytes);
+        Self::serialize(&mut writer, texture)?;
+        Ok(bytes)
+    }
+}
 
 pub struct TextureFile {
     pub le: bool,
