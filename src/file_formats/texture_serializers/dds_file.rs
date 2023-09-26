@@ -1,9 +1,11 @@
 use std::io::{Error, ErrorKind, Read, Seek, Write};
 
 use crate::{
-    file_formats::texture_file::{TextureFile, TextureSerializerExt},
+    file_formats::texture_file::TextureFile,
     helpers::{byte::*, serializable::SerializablePartExt},
 };
+
+use super::texture_serializer::TextureSerializerExt;
 
 pub struct DDSFile {}
 

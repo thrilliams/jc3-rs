@@ -2,7 +2,9 @@ use std::io::{Error, ErrorKind, Seek, Write};
 use texpresso::Format;
 use webp::{Encoder, PixelLayout};
 
-use crate::file_formats::texture_file::{TextureFile, TextureSerializerExt};
+use crate::file_formats::texture_file::TextureFile;
+
+use super::texture_serializer::TextureSerializerExt;
 
 pub struct WEBPFile {}
 
