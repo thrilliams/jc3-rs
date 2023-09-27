@@ -1,15 +1,12 @@
-use std::cmp::min;
-use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufReader, Error, ErrorKind, Read, Seek, SeekFrom};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 use crate::helpers::error::to_io_error;
 use crate::helpers::serializable::SerializableExt;
-use crate::util::jenkins::hash_string;
 
 use super::archive_table::ArchiveTable;
-use super::file_lists::FileListEntry;
+use super::file_lists::{FileListEntry, FileLists};
 
 const SIMPLE_4_LOOKUP: [(u32, &str); 5] = [
     (0x20534444, "dds"),
@@ -37,25 +34,18 @@ impl PackedArchive {
     pub fn deserialize<R: Seek + Read>(
         input: &mut R,
         archive_table: &ArchiveTable,
-        file_list_entries: &HashMap<u32, FileListEntry>,
+        file_list_entries: &mut Vec<FileListEntry>,
     ) -> std::io::Result<Vec<PackedArchiveEntry>> {
         let mut entries = Vec::new();
 
-        for entry in &archive_table.entries {
-            let name = match file_list_entries.get(&entry.name_hash) {
-                Some(entry) => entry.name.to_owned(),
-                None => {
-                    // reads between entry.size and 32 bytes into a vector then transforms it to an array
-                    let mut guess = vec![0u8; min(32, entry.size)];
-                    input.seek(SeekFrom::Start(entry.offset.try_into().unwrap()))?;
-                    let read = input.read(&mut guess)?;
-                    let guess = guess.as_slice();
+        file_list_entries.sort_unstable_by_key(|entry| entry.name_hash);
 
-                    let extension = PackedArchive::detect_file_extension(guess, read)?;
-                    let name = format!("{}", entry.name_hash) + "." + extension;
-                    let path: PathBuf = ["__UNKNOWN", extension, &name].iter().collect();
-                    path.to_string_lossy().to_string()
-                }
+        for entry in &archive_table.entries {
+            let name = match file_list_entries
+                .binary_search_by_key(&entry.name_hash, |vec_entry| vec_entry.name_hash)
+            {
+                Ok(index) => file_list_entries[index].name.to_owned(),
+                Err(_err) => continue,
             };
 
             input.seek(SeekFrom::Start(
@@ -72,48 +62,44 @@ impl PackedArchive {
 
         Ok(entries)
     }
+
     pub fn deserialize_from_path<P: AsRef<Path>>(
         path: &P,
         archive_table: &ArchiveTable,
-        file_list_entries: &HashMap<u32, FileListEntry>,
+        file_list_entries: &mut Vec<FileListEntry>,
     ) -> std::io::Result<Vec<PackedArchiveEntry>> {
         let file = File::open(path)?;
         let mut buf_reader = BufReader::new(file);
         PackedArchive::deserialize(&mut buf_reader, archive_table, file_list_entries)
     }
-    pub fn deserialize_from_entry(
-        file_list_entry: &FileListEntry,
-        game_dir: &str,
-    ) -> std::io::Result<PackedArchiveEntry> {
-        let game_dir_path = Path::new(game_dir);
-        let base_path = Path::new(&file_list_entry.arc_name);
-        let base_path = game_dir_path.join(base_path);
 
-        let archive_table_path = base_path.with_extension("tab");
-        let mut archive_table = ArchiveTable::deserialize_from_path(&archive_table_path)?;
+    pub fn deserialize_from_file_lists<P: AsRef<Path>>(
+        file_lists: FileLists,
+        game_dir: &P,
+    ) -> std::io::Result<Vec<PackedArchiveEntry>> {
+        let mut entries = Vec::new();
 
-        // binary search for provided name
-        let name_hash = hash_string(file_list_entry.name.as_str());
-        archive_table.entries.sort_by_key(|e| e.name_hash);
-        let archive_entry = archive_table
-            .entries
-            .binary_search_by_key(&name_hash, |e| e.name_hash)
-            .map_err(|_e| Error::new(ErrorKind::InvalidData, "archive table entry not found!"))?;
-        let archive_entry = &archive_table.entries[archive_entry];
+        for (path, mut file_list_entries) in file_lists {
+            let mut base_path = PathBuf::new();
+            base_path.push(game_dir);
+            base_path.push(path);
 
-        let packed_archive_path = base_path.with_extension("arc");
-        let mut packed_archive_file = File::open(packed_archive_path)?;
+            let archive_table_path = base_path.with_extension("tab");
+            let archive_table = ArchiveTable::deserialize_from_path(&archive_table_path)?;
 
-        packed_archive_file.seek(SeekFrom::Start(
-            archive_entry.offset.try_into().map_err(to_io_error)?,
-        ))?;
-        let mut contents = vec![0u8; archive_entry.size];
-        packed_archive_file.read(&mut contents)?;
+            let packed_archive_path = base_path.with_extension("arc");
+            let packed_archive_entries = PackedArchive::deserialize_from_path(
+                &packed_archive_path,
+                &archive_table,
+                &mut file_list_entries,
+            )?;
 
-        Ok(PackedArchiveEntry {
-            name: file_list_entry.name.to_owned(),
-            contents,
-        })
+            for entry in packed_archive_entries {
+                entries.push(entry);
+            }
+        }
+
+        Ok(entries)
     }
 
     fn detect_file_extension(guess: &[u8], read: usize) -> std::io::Result<&str> {

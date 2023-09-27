@@ -2,14 +2,14 @@ use std::io::{Error, ErrorKind, Seek, Write};
 use texpresso::Format;
 use webp::{Encoder, PixelLayout};
 
-use crate::file_formats::texture_file::TextureFile;
+use crate::file_formats::texture::Texture;
 
 use super::texture_serializer::TextureSerializerExt;
 
 pub struct WEBPFile {}
 
 impl TextureSerializerExt for WEBPFile {
-    fn serialize<R: Seek + Write>(output: &mut R, texture: &TextureFile) -> std::io::Result<()> {
+    fn serialize<R: Seek + Write>(output: &mut R, texture: &Texture) -> std::io::Result<()> {
         let format = match texture.format {
             // DXGI_FORMAT_BC1_UNORM
             71 => Ok(Format::Bc1),
