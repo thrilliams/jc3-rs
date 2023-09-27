@@ -1,7 +1,7 @@
 use std::io::{Error, ErrorKind, Read, Seek, Write};
 
 use crate::{
-    file_formats::texture_file::TextureFile,
+    file_formats::texture::Texture,
     helpers::{byte::*, serializable::SerializablePartExt},
 };
 
@@ -10,7 +10,7 @@ use super::texture_serializer::TextureSerializerExt;
 pub struct DDSFile {}
 
 impl DDSFile {
-    fn get_pixel_format(texture: &TextureFile) -> std::io::Result<PixelFormat> {
+    fn get_pixel_format(texture: &Texture) -> std::io::Result<PixelFormat> {
         // https://msdn.microsoft.com/en-us/library/windows/desktop/bb173059.aspx "DXGI_FORMAT enumeration"
         // https://msdn.microsoft.com/en-us/library/windows/desktop/cc308051.aspx "Legacy Formats: Map Direct3D 9 Formats to Direct3D 10"
         match texture.format {
@@ -22,9 +22,11 @@ impl DDSFile {
             77 => Ok(PixelFormat::new(FileFormat::DXT5)?),
             // DXGI_FORMAT_B8G8R8A8_UNORM
             87 => Ok(PixelFormat::new(FileFormat::A8R8G8B8)?),
+            // DXGI_FORMAT_R8G8B8A8_UNORM
+            28 => Ok(PixelFormat::new(FileFormat::R8G8B8A8)?),
 
-            // DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_BC5_UNORM, DXGI_FORMAT_BC7_UNORM
-            x if x == 61 || x == 83 || x == 98 => Ok(PixelFormat {
+            // DXGI_FORMAT_R8_UNORM, DXGI_FORMAT_BC5_UNORM, DXGI_FORMAT_BC7_UNORM, DXGI_FORMAT_BC4_UNORM
+            x if x == 61 || x == 83 || x == 98 || x == 80 => Ok(PixelFormat {
                 size: PixelFormat::DEFAULT_SIZE,
                 flags: 0,
                 four_cc: 0x30315844, // 'DX10'
@@ -37,7 +39,7 @@ impl DDSFile {
 
             _ => Err(Error::new(
                 ErrorKind::InvalidData,
-                "unrecognized texture format!",
+                format!("unrecognized texture format {}!", texture.format),
             )),
         }
 
@@ -46,7 +48,7 @@ impl DDSFile {
 }
 
 impl TextureSerializerExt for DDSFile {
-    fn serialize<R: Seek + Write>(output: &mut R, texture: &TextureFile) -> std::io::Result<()> {
+    fn serialize<R: Seek + Write>(output: &mut R, texture: &Texture) -> std::io::Result<()> {
         let le = true;
 
         let header = DDSHeader {
@@ -279,6 +281,16 @@ impl PixelFormat {
                 blue_bit_mask: 0x0000000F,
                 alpha_bit_mask: 0x0000F000,
             }),
+            FileFormat::R8G8B8A8 => Ok(PixelFormat {
+                size: PixelFormat::DEFAULT_SIZE,
+                flags: PixelFormatFlags::RGBA as u32,
+                four_cc: 0,
+                rgb_bit_count: 32,
+                red_bit_mask: 0xFF000000,
+                green_bit_mask: 0x00FF0000,
+                blue_bit_mask: 0x0000FF00,
+                alpha_bit_mask: 0x000000FF,
+            }),
             FileFormat::R8G8B8 => Ok(PixelFormat {
                 size: PixelFormat::DEFAULT_SIZE,
                 flags: PixelFormatFlags::RGB as u32,
@@ -362,6 +374,7 @@ pub enum FileFormat {
     X8B8G8R8,
     A1R5G5B5,
     A4R4G4B4,
+    R8G8B8A8,
     R8G8B8,
     R5G6B5,
     INVALID,

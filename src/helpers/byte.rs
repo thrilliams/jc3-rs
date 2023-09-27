@@ -4,6 +4,8 @@ use std::io::ErrorKind;
 use std::io::Read;
 use std::io::SeekFrom;
 
+use super::error::to_io_error;
+
 // Seek.stream_length is expiremental so we're rolling our own
 pub trait StreamLengthExt {
     fn stream_length(&mut self) -> std::io::Result<u64>;
@@ -18,7 +20,7 @@ impl<T: Seek> StreamLengthExt for T {
     }
 }
 
-pub trait ByteReaderExt {
+pub trait ByteReaderExt: std::io::Read {
     fn read_bytes<const N: usize>(&mut self) -> std::io::Result<[u8; N]>;
 
     fn read_u8(&mut self) -> std::io::Result<u8> {
@@ -70,6 +72,12 @@ pub trait ByteReaderExt {
             i32::from_be_bytes(bytes)
         };
         Ok(value)
+    }
+
+    fn read_string(&mut self, length: u32) -> std::io::Result<String> {
+        let mut bytes = vec![0u8; length.try_into().map_err(to_io_error)?];
+        self.read(&mut bytes)?;
+        Ok(String::from_utf8(bytes).map_err(to_io_error)?)
     }
 
     fn validate_signature<const N: usize>(
