@@ -10,3 +10,6 @@ glob = "0.3.1"
 png = "0.17.10"
 texpresso = "2.0.1"
 webp = "0.2.6"
+flate2 = { version = "1.0.17", features = [
+	"zlib-ng",
+], default-features = false }
