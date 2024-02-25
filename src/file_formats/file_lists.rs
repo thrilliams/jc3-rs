@@ -12,7 +12,6 @@ pub struct FileListEntry {
     pub name_hash: u32,
 }
 
-#[allow(dead_code)]
 pub fn load_with_filter(filter: fn(&str) -> bool) -> std::io::Result<FileLists> {
     let mut file_lists: FileLists = HashMap::new();
 
@@ -49,7 +48,6 @@ pub fn load_with_filter(filter: fn(&str) -> bool) -> std::io::Result<FileLists> 
     Ok(file_lists)
 }
 
-#[allow(dead_code)]
 pub fn load() -> std::io::Result<FileLists> {
     load_with_filter(|_| true)
 }

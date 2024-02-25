@@ -29,7 +29,6 @@ pub struct PackedArchiveEntry {
     pub contents: Vec<u8>,
 }
 
-#[allow(dead_code)]
 impl PackedArchive {
     pub fn deserialize<R: Seek + Read>(
         input: &mut R,

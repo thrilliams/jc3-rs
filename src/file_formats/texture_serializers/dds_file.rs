@@ -165,7 +165,6 @@ impl SerializablePartExt<DDSHeader> for DDSHeader {
     }
 }
 
-#[allow(dead_code)]
 #[repr(u32)]
 enum HeaderFlags {
     Texture = 0x00001007, // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT
@@ -355,7 +354,6 @@ impl SerializablePartExt<PixelFormat> for PixelFormat {
     }
 }
 
-#[allow(dead_code)]
 enum PixelFormatFlags {
     FourCC = 0x00000004,
     RGB = 0x00000040,
@@ -363,7 +361,6 @@ enum PixelFormatFlags {
     Luminance = 0x00020000,
 }
 
-#[allow(dead_code)]
 pub enum FileFormat {
     DXT1,
     DXT3,
