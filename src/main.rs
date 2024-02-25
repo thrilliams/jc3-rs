@@ -37,18 +37,20 @@ fn extract_map() -> std::io::Result<()> {
 }
 
 fn main() -> std::io::Result<()> {
-    let file_list_entries = load_with_filter(|name| name.ends_with("l"))?;
+    // let file_list_entries = load_with_filter(|name| name.ends_with("l"))?;
 
-    let packed_archive_entries =
-        PackedArchive::deserialize_from_file_lists(file_list_entries, &"game_dir")?;
+    // let packed_archive_entries =
+    //     PackedArchive::deserialize_from_file_lists(file_list_entries, &"game_dir")?;
 
-    for entry in &packed_archive_entries[0..10] {
-        println!("{}", entry.name);
-        let cool_archive = CoolArchive::deserialize_from_bytes(&entry.contents)?;
-        for chunk in cool_archive.chunks {
-            println!("{:?}", &chunk.contents[0..4]);
-        }
-    }
+    // for entry in &packed_archive_entries[0..10] {
+    //     println!("{}", entry.name);
+    //     let cool_archive = CoolArchive::deserialize_from_bytes(&entry.contents)?;
+    //     for chunk in cool_archive.chunks {
+    //         println!("{:?}", &chunk.contents[0..4]);
+    //     }
+    // }
+
+    extract_map()?;
 
     Ok(())
 }

@@ -1,0 +1,3 @@
+this repository implements a collection of file formats used by Just Cause 3, especially those used for encoding texture data. for the most part, this is a rust re-implementation of the work done by the wonderfully talented Gibbed over at [gibbed/Gibbed.JustCause3](https://github.com/gibbed/Gibbed.JustCause3).
+
+to run this yourself, locate the directory containing the directories `archives_win64`, `patch_win64`, and `dlc_win64`, then either copy or link it to `./game_dir`. then, use Cargo to run main.rs and the program will generate a `textures` folder containing the images used in the game's world map.
